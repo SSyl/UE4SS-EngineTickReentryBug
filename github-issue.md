@@ -32,7 +32,7 @@ local function ChainB()
 end
 ```
 
-Why the 50/75ms delays? I felt like they were lenient enough to prove this isn't just a torture test. Especially considering a hook that runs per frame would be firing every ~8ms at 120fps.
+Why the 50/75ms delays? I felt like they were lenient enough to prove this isn't just a torture test - a hook that runs per frame would be firing every ~8ms at 120fps. You can drop the delays to 25/50 or lower to crash faster, or just call ExecuteInGameThread several times without any delay and it crashes almost instantly. I used two chains to simulate a more realistic scenario where two separate mods are independently doing game-thread work.
 
 **To reproduce**
 1. Copy `EngineTickReentryBug` folder into your Mods directory
