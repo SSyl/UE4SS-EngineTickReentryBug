@@ -1,18 +1,15 @@
 --[[
-    EngineTickReentryBug - Minimal reproduction mod
+    WrappedDelay - Two deferred chains using ExecuteWithDelay + ExecuteInGameThread
 
-    Simulates two mods scheduling independent deferred work via
-    ExecuteWithDelay + ExecuteInGameThread. When these overlapping
-    actions land during the same engine tick, a crash occurs in
-    get_function_ref with "Ref was not function".
+    Simulates two mods scheduling independent deferred work.
+    Crashes on official 932 within a few minutes. Stable on Martin's fix DLL.
 
-    See README.md for full details and crash dump analysis.
+    See README.md for details and crash dump info.
 ]]
 
-local MOD_NAME = "EngineTickReentryBug"
+local MOD_NAME = "WrappedDelay"
 
 local iterations = 0
-local startTime = nil
 local isRunning = false
 
 local function Log(msg)
@@ -26,7 +23,9 @@ end
 local function ChainA()
     if not isRunning then return end
     iterations = iterations + 1
-    Log(string.format("Chain A - Iteration %d", iterations))
+    if iterations % 100 == 0 then
+        Log(string.format("Chain A - Iteration %d", iterations))
+    end
 
     ExecuteWithDelay(50, function()
         ExecuteInGameThread(ChainA)
@@ -36,7 +35,9 @@ end
 local function ChainB()
     if not isRunning then return end
     iterations = iterations + 1
-    Log(string.format("Chain B - Iteration %d", iterations))
+    if iterations % 100 == 0 then
+        Log(string.format("Chain B - Iteration %d", iterations))
+    end
 
     ExecuteWithDelay(75, function()
         ExecuteInGameThread(ChainB)
@@ -51,7 +52,6 @@ local function StartReproduction()
 
     isRunning = true
     iterations = 0
-    startTime = os.clock()
 
     Log("===========================================")
     Log("Starting overlapping deferred action test")
@@ -66,18 +66,9 @@ end
 -- Wait for game to fully load before starting
 RegisterHook("/Script/Engine.PlayerController:ClientRestart", function()
     Log("Game started, waiting 10 seconds before beginning test...")
-
     ExecuteWithDelay(10000, function()
-        Log("Starting in 3...")
-        ExecuteWithDelay(1000, function()
-            Log("2...")
-            ExecuteWithDelay(1000, function()
-                Log("1...")
-                ExecuteWithDelay(1000, function()
-                    StartReproduction()
-                end)
-            end)
-        end)
+        Log("Starting crash test now.")
+        StartReproduction()
     end)
 end)
 
